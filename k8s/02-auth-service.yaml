@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: korvix18/novasoft-auth:latest   
+          ports:
+            - containerPort: 8001
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: novasoft-config
+                  key: DB_HOST
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: novasoft-config
+                  key: DB_NAME_AUTH
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: novasoft-secret
+                  key: DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: novasoft-secret
+                  key: DB_PASS
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: novasoft-secret
+                  key: SECRET_KEY
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - port: 8001
+      targetPort: 8001

@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clients-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: clients-service
+  template:
+    metadata:
+      labels:
+        app: clients-service
+    spec:
+      containers:
+        - name: clients-service
+          image: korvix18/novasoft-clients:latest   
+          ports:
+            - containerPort: 8002
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: novasoft-config
+                  key: DB_HOST
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: novasoft-config
+                  key: DB_NAME_CLIENTS
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: novasoft-secret
+                  key: DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: novasoft-secret
+                  key: DB_PASS
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: novasoft-secret
+                  key: SECRET_KEY
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clients-service
+spec:
+  selector:
+    app: clients-service
+  ports:
+    - port: 8002
+      targetPort: 8002
